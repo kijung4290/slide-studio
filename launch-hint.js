@@ -1,0 +1,1 @@
+if(location.protocol==='file:'){document.getElementById('empty-state').innerHTML='<p class="eyebrow">발표 작업실 실행 방법</p><h1>실행 파일로 열어 주세요.</h1><p>설치된 발표 작업실을 실행하거나,<br>개발용 소스의 발표작업실_시작.cmd를 실행하세요.</p>';}

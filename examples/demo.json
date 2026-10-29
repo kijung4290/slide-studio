@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "slide-studio-demo",
+  "title": "발표 작업실 사용 예제",
+  "targetMinutes": 3,
+  "updatedAt": 1,
+  "slides": [
+    { "id": "demo-1", "title": "나의 발표를 시작하세요", "kind": "native", "width": 1600, "height": 900, "html": "<div class=\"native-slide cover\"><div class=\"topline\" data-editable=\"true\">발표 작업실</div><div class=\"title\" data-editable=\"true\">슬라이드 옆에,\n전하고 싶은 이야기.</div><div class=\"body\" data-editable=\"true\">PPT와 PDF를 가져오고, 대본을 준비하고, 발표하세요.</div><div class=\"foot\" data-editable=\"true\">문구를 클릭하면 직접 수정할 수 있습니다.</div></div>", "notes": "이곳은 현재 슬라이드의 발표 대본입니다. 직접 문구를 고치거나, PPT 파일의 발표자 노트를 가져와서 사용할 수 있습니다.", "cue": "발표를 시작하기 전 청중과 눈을 맞추세요.", "duration": 45, "overlays": [] },
+    { "id": "demo-2", "title": "내 자료를 가져와 대본을 연결하세요", "kind": "native", "width": 1600, "height": 900, "html": "<div class=\"native-slide\"><div class=\"topline\" data-editable=\"true\">내 자료로 발표 준비</div><div class=\"title\" data-editable=\"true\">내 자료를 가져와 대본을 연결하세요</div><div class=\"body\" data-editable=\"true\">PPT · PPTX: 원본 화면과 발표자 노트 가져오기\nPDF: 페이지를 슬라이드로 가져오기\n프로젝트: 저장한 화면과 대본을 이어서 편집하기</div></div>", "notes": "왼쪽에는 청중에게 보여 줄 슬라이드가, 오른쪽에는 내가 읽을 대본이 표시됩니다. 슬라이드를 바꾸면 해당 대본이 함께 바뀝니다.", "cue": "가져온 파일의 실제 모양을 확인하세요.", "duration": 60, "overlays": [] },
+    { "id": "demo-3", "title": "준비한 이야기를 전하세요", "kind": "native", "width": 1600, "height": 900, "html": "<div class=\"native-slide quote\"><div class=\"topline\" data-editable=\"true\">발표 준비 완료</div><div class=\"title\" data-editable=\"true\">준비한 이야기를\n차분하게 전하세요.</div><div class=\"body\" data-editable=\"true\">발표화면은 대본 없이 별도 창으로 열립니다.</div></div>", "notes": "프로젝트 저장으로 대본까지 백업해 두세요. 발표화면 열기는 청중에게 보일 별도 창을 엽니다. 발표가 끝나면 작업 내용을 저장합니다.", "cue": "마지막 질문을 받고 마무리하세요.", "duration": 45, "overlays": [] }
+  ]
+}

@@ -1,0 +1,17 @@
+import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import os from 'node:os';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const version='6.4.299';
+const destination=path.join(root,'vendor','pdfjs');
+await mkdir(destination,{recursive:true});
+const archive=path.join(os.tmpdir(),`slide-studio-pdfjs-${version}.tgz`);
+const response=await fetch(`https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-${version}.tgz`);
+if(!response.ok)throw new Error('PDF.js download failed');
+await writeFile(archive,Buffer.from(await response.arrayBuffer()));
+const result=spawnSync('tar',['-xf',archive,'-C',destination,'--strip-components=1','package/build/pdf.mjs','package/build/pdf.worker.mjs','package/cmaps','package/standard_fonts','package/wasm','package/LICENSE'],{stdio:'inherit',windowsHide:true});
+if(result.status!==0)throw new Error('PDF.js extraction failed');
+await rm(archive,{force:true});
+console.log(`PDF.js ${version} ready: ${destination}`);

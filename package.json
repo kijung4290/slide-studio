@@ -1,0 +1,93 @@
+{
+  "name": "slide-studio",
+  "productName": "발표 작업실",
+  "version": "1.0.0",
+  "description": "PPT·PDF 슬라이드와 발표 대본을 함께 편집하는 Windows 발표 작업실",
+  "author": "kijung4290",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "electron/main.cjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kijung4290/slide-studio.git"
+  },
+  "homepage": "https://github.com/kijung4290/slide-studio#readme",
+  "scripts": {
+    "start": "electron .",
+    "web": "node server.mjs --open",
+    "check": "node scripts/check.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "smoke": "node scripts/run-electron.cjs --smoke-test",
+    "pack": "electron-builder --win --x64 --dir",
+    "dist": "electron-builder --win nsis --x64 --publish never",
+    "release": "electron-builder --win nsis --x64 --publish always",
+    "verify:update": "node scripts/run-electron.cjs --verify-update-feed"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.11"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "kr.parkjuim.slidestudio",
+    "productName": "발표 작업실",
+    "copyright": "Copyright © 2026 kijung4290",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**",
+      "assets/**",
+      "examples/**",
+      "vendor/**",
+      "server.mjs",
+      "editor.js",
+      "editor.css",
+      "launch-hint.js",
+      "슬라이드편집기.html",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "convert-powerpoint.ps1",
+        "to": "convert-powerpoint.ps1"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico",
+      "executableName": "SlideStudio",
+      "signExecutable": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "발표 작업실",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "installerLanguages": [
+        "ko_KR"
+      ],
+      "artifactName": "SlideStudio-Setup-${version}-${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "kijung4290",
+        "repo": "slide-studio",
+        "releaseType": "release"
+      }
+    ]
+  }
+}
