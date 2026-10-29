@@ -1,7 +1,7 @@
 {
   "name": "slide-studio",
   "productName": "발표 작업실",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "PPT·PDF 슬라이드와 발표 대본을 함께 편집하는 Windows 발표 작업실",
   "author": "kijung4290",
   "license": "UNLICENSED",
@@ -20,7 +20,7 @@
     "smoke": "node scripts/run-electron.cjs --smoke-test",
     "pack": "electron-builder --win --x64 --dir",
     "dist": "electron-builder --win nsis --x64 --publish never",
-    "release": "electron-builder --win nsis --x64 --publish always",
+    "release": "node scripts/publish-release.cjs",
     "verify:update": "node scripts/run-electron.cjs --verify-update-feed"
   },
   "dependencies": {

@@ -1,10 +1,14 @@
 const fs=require('node:fs/promises');
 const path=require('node:path');
 const {NsisUpdater}=require('electron-updater');
-const {SemVer}=require('semver');
+const {createRequire}=require('node:module');
+const {SemVer}=createRequire(require.resolve('electron-updater'))('semver');
 module.exports=async({app,qaDir})=>{
   await fs.mkdir(qaDir,{recursive:true});
   const updater=new NsisUpdater({provider:'github',owner:'kijung4290',repo:'slide-studio'});
+  const configPath=path.join(qaDir,'verify-app-update.yml');
+  await fs.writeFile(configPath,'provider: github\nowner: kijung4290\nrepo: slide-studio\nupdaterCacheDirName: slide-studio-updater-qa\n');
+  updater.updateConfigPath=configPath;
   updater.autoDownload=false;updater.autoInstallOnAppQuit=false;updater.forceDevUpdateConfig=true;updater.currentVersion=new SemVer('0.0.1');
   updater.on('error',()=>{});
   try{const result=await updater.checkForUpdates();if(!result?.updateInfo?.files?.length)throw new Error('No update installer found');
