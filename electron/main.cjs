@@ -27,13 +27,31 @@ function guardWindow(window){
   window.webContents.on('render-process-gone',(_event,details)=>log('Renderer stopped: '+JSON.stringify(details)));
 }
 function createMenu(){Menu.setApplicationMenu(Menu.buildFromTemplate([
-  {label:'파일',submenu:[{label:'프로젝트 저장',accelerator:'CmdOrCtrl+S',click:()=>mainWindow?.webContents.executeJavaScript("document.querySelector('[data-action=save]').click()")},{type:'separator'},{label:'종료',accelerator:'Alt+F4',click:()=>mainWindow?.close()}]},
+  {label:'파일',submenu:[{label:'프로젝트 저장',accelerator:'CmdOrCtrl+S',click:()=>mainWindow?.webContents.executeJavaScript("document.querySelector('[data-action=save]').click()")},{label:'PPTX로 저장',accelerator:'CmdOrCtrl+Shift+S',click:()=>mainWindow?.webContents.executeJavaScript("document.querySelector('[data-action=save-pptx]').click()")},{type:'separator'},{label:'종료',accelerator:'Alt+F4',click:()=>mainWindow?.close()}]},
   {label:'편집',submenu:[{role:'undo',label:'실행 취소'},{role:'redo',label:'다시 실행'},{type:'separator'},{role:'cut',label:'잘라내기'},{role:'copy',label:'복사'},{role:'paste',label:'붙여넣기'},{role:'selectAll',label:'모두 선택'}]},
   {label:'보기',submenu:[{role:'togglefullscreen',label:'전체화면'},{role:'resetZoom',label:'기본 배율'},{role:'zoomIn',label:'확대'},{role:'zoomOut',label:'축소'}]},
   {label:'도움말',submenu:[{label:'사용 방법',click:()=>mainWindow?.webContents.executeJavaScript("document.querySelector('[data-action=help]').click()")},{label:'업데이트 확인',click:()=>updates?.check()},{label:'GitHub 릴리스',click:()=>shell.openExternal('https://github.com/kijung4290/slide-studio/releases')},{type:'separator'},{label:'발표 작업실 정보',click:()=>dialog.showMessageBox(mainWindow,{type:'info',title:'발표 작업실',message:`발표 작업실 v${app.getVersion()}`,detail:'PPT·PDF 슬라이드와 발표 대본을 함께 준비하는 Windows 프로그램\n제작: kijung4290'})}]}
 ]));}
 function installUpdate(){if(updates.getState().phase!=='ready')return false;allowClose=true;return updates.install();}
 function wireIpc(){
+  ipcMain.handle('slide:render-image',async(event,value)=>{
+    if(!trusted(event))throw new Error('허용하지 않는 요청입니다.');
+    const width=Math.round(Number(value?.width)),height=Math.round(Number(value?.height)),html=value?.html;
+    if(width<100||height<100||width>5000||height>5000||!Number.isFinite(width)||!Number.isFinite(height)||typeof html!=='string'||html.length>25e6)throw new Error('슬라이드 크기 또는 내용이 올바르지 않습니다.');
+    const captureSession=session.fromPartition('slide-capture-'+randomUUID());
+    captureSession.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
+    captureSession.webRequest.onBeforeRequest((details,callback)=>callback({cancel:!details.url.startsWith('data:')&&!details.url.startsWith('about:')&&!details.url.startsWith('blob:')}));
+    const captureWindow=new BrowserWindow({width,height,useContentSize:true,frame:false,show:false,backgroundColor:'#ffffff',webPreferences:{session:captureSession,nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,backgroundThrottling:false}});
+    captureWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+    try{
+      await captureWindow.loadURL('about:blank');
+      const meta='<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; style-src \'unsafe-inline\'; img-src data: blob:; font-src data:">';
+      const safeHtml=/<head[\s>]/i.test(html)?html.replace(/<head([^>]*)>/i,'<head$1>'+meta):'<!doctype html><html><head>'+meta+'</head><body>'+html+'</body></html>';
+      await captureWindow.webContents.executeJavaScript('document.open();document.write('+JSON.stringify(safeHtml)+');document.close();');
+      let timeout;try{await Promise.race([captureWindow.webContents.executeJavaScript('document.fonts.ready.then(()=>Promise.all([...document.images].map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve}))))'),new Promise((_resolve,reject)=>{timeout=setTimeout(()=>reject(new Error('슬라이드 이미지 생성 시간이 초과되었습니다.')),15000);})]);}finally{clearTimeout(timeout);}
+      return(await captureWindow.webContents.capturePage()).toPNG();
+    }finally{captureWindow.destroy();}
+  });
   ipcMain.handle('slide:info',event=>{if(!trusted(event))throw new Error('허용하지 않는 요청입니다.');return{version:app.getVersion(),updates:updates.getState(),userData:app.getPath('userData')};});
   ipcMain.handle('slide:check-update',event=>{if(!trusted(event))throw new Error('허용하지 않는 요청입니다.');return updates.check();});
   ipcMain.handle('slide:install-update',event=>{if(!trusted(event))throw new Error('허용하지 않는 요청입니다.');return installUpdate();});
@@ -59,7 +77,7 @@ if(hasLock)app.whenReady().then(async()=>{
   session.defaultSession.setPermissionRequestHandler((_contents,permission,callback)=>callback(permission==='fullscreen'));
   session.defaultSession.setPermissionCheckHandler((_contents,permission)=>permission==='fullscreen');
   const {createSlideServer}=await import(pathToFileURL(path.join(app.getAppPath(),'server.mjs')).href);
-  service=createSlideServer({port:qa?14319:14318,root:app.getAppPath(),publicDemo:true,conversionScript:app.isPackaged?path.join(process.resourcesPath,'convert-powerpoint.ps1'):path.join(app.getAppPath(),'convert-powerpoint.ps1')});
+  service=createSlideServer({port:qa?14319:14318,root:app.getAppPath(),publicDemo:true,conversionScript:app.isPackaged?path.join(process.resourcesPath,'convert-powerpoint.ps1'):path.join(app.getAppPath(),'convert-powerpoint.ps1'),exportScript:app.isPackaged?path.join(process.resourcesPath,'export-powerpoint.ps1'):path.join(app.getAppPath(),'export-powerpoint.ps1')});
   await service.listen();
   updates=new UpdateController(autoUpdater,{version:app.getVersion(),enabled:app.isPackaged&&!qa,log});
   updates.on('state',state=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('slide:update',state);});

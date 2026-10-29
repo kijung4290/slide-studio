@@ -1,0 +1,20 @@
+const{test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs/promises');const{existsSync}=require('node:fs');const path=require('node:path');const{pathToFileURL}=require('node:url');
+const fixture=path.join(__dirname,'..','.qa','editable-rich.pptx');
+test('PPTX round trip preserves editable text, table cells, groups, clones and notes',{skip:process.platform!=='win32'||!existsSync(fixture),timeout:180000},async()=>{
+ const root=path.join(__dirname,'..'),{createSlideServer}=await import(pathToFileURL(path.join(root,'server.mjs')).href),service=createSlideServer({root,port:0});await service.listen();
+ const upload=async bytes=>{const response=await fetch(service.url+'/api/import/powerpoint',{method:'POST',headers:{'X-File-Name':'fixture.pptx'},body:bytes});const result=await response.json();assert.ok(response.ok,result.error);return result;};
+ try{
+  const imported=await upload(await fs.readFile(fixture)),slide=imported.slides[0];
+  const title=slide.objects.find(o=>o.name==='Title');assert.ok(title);title.text='Edited title from round-trip test';title.x+=25;title.color='#be123c';title.changes={text:true,geometry:true,color:true};
+  const table=slide.objects.find(o=>o.type==='table');assert.ok(table);table.table[1][1].text='Edited cell';table.changes={table:true};
+  const picture=slide.objects.find(o=>o.type==='picture');assert.ok(picture);picture.image=title.preview;picture.changes={image:true};slide.reorderObjects=true;
+  const rectangle=slide.objects.find(o=>o.name==='Blue Rectangle');assert.ok(rectangle);const duplicate={...rectangle,id:'clone-test',sourceId:null,cloneSourceId:rectangle.sourceId,x:rectangle.x+30,text:'Cloned rectangle',changes:{text:true,geometry:true}};
+  slide.objects=slide.objects.filter(o=>o!==rectangle);slide.objects.push(duplicate);slide.deletedObjects=[rectangle.sourceId];slide.notes='Edited speaker notes';
+  const request={source:imported.pptx,slides:[imported.slides[1],slide]};const saved=await fetch(service.url+'/api/export/powerpoint',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});assert.ok(saved.ok,await(saved.ok?Promise.resolve(''):saved.text()));
+  const bytes=Buffer.from(await saved.arrayBuffer());await fs.writeFile(path.join(root,'.qa','roundtrip-rich.pptx'),bytes);const result=await upload(bytes),edited=result.slides[1];
+  assert.equal(result.slides.length,2);assert.ok(edited.objects.some(o=>o.text===title.text&&o.color.toLowerCase()==='#be123c'));assert.equal(edited.objects.find(o=>o.type==='table').table[1][1].text,'Edited cell');assert.ok(edited.objects.some(o=>o.text==='Cloned rectangle'));assert.ok(edited.objects.some(o=>o.name==='Preserved Group'&&o.type==='graphic'));assert.ok(edited.objects.some(o=>o.name===picture.name&&o.type==='picture'));assert.equal(edited.notes,'Edited speaker notes');
+  const fresh={title:'New slide',width:1600,height:900,backgroundColor:'#edf7fa',notes:'New slide notes',objects:[{type:'text',name:'New text',x:100,y:150,width:1200,height:120,text:'Created in Slide Studio',fontSize:64,color:'#197b92'},{type:'shape',name:'New ellipse',geometry:'ellipse',x:200,y:350,width:300,height:180,fillVisible:true,fill:'#d7eef4',rotation:20},{type:'shape',name:'New line',geometry:'line',x:200,y:600,width:500,height:1,lineWidth:3,lineColor:'#197b92'}]};
+  const freshResponse=await fetch(service.url+'/api/export/powerpoint',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slides:[fresh]})});assert.ok(freshResponse.ok,await(freshResponse.ok?Promise.resolve(''):freshResponse.text()));const freshBytes=Buffer.from(await freshResponse.arrayBuffer());await fs.writeFile(path.join(root,'.qa','created-in-studio.pptx'),freshBytes);const freshResult=await upload(freshBytes);
+  assert.equal(freshResult.slides.length,1);assert.equal(freshResult.slides[0].notes,fresh.notes);assert.ok(freshResult.slides[0].objects.some(o=>o.text==='Created in Slide Studio'));assert.ok(freshResult.slides[0].objects.some(o=>o.geometry==='ellipse'&&Math.abs(o.rotation-20)<.1));
+ }finally{await service.close();}
+});

@@ -1,11 +1,12 @@
 {
   "name": "slide-studio",
   "productName": "발표 작업실",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "PPT·PDF 슬라이드와 발표 대본을 함께 편집하는 Windows 발표 작업실",
   "author": "kijung4290",
   "license": "UNLICENSED",
   "private": true,
+  "type": "module",
   "main": "electron/main.cjs",
   "repository": {
     "type": "git",
@@ -48,6 +49,8 @@
       "editor.js",
       "editor.css",
       "launch-hint.js",
+      "powerpoint-model.js",
+      "powerpoint-editor.js",
       "슬라이드편집기.html",
       "package.json"
     ],
@@ -55,6 +58,10 @@
       {
         "from": "convert-powerpoint.ps1",
         "to": "convert-powerpoint.ps1"
+      },
+      {
+        "from": "export-powerpoint.ps1",
+        "to": "export-powerpoint.ps1"
       }
     ],
     "win": {
